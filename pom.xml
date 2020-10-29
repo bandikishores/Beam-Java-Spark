@@ -1,0 +1,313 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.skyflow</groupId>
+	<artifactId>beam-wordcount</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+
+	<name>Sample Word Count to test Beam with Spark</name>
+	<description>
+		A project containing word count example to create pipelines from the Apache Beam Java SDK.
+	</description>
+
+	<properties>
+		<beam-version>2.25.0</beam-version>
+		<spark-version>2.4.7</spark-version>
+		<jackson-version>2.10.2</jackson-version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.beam</groupId>
+			<artifactId>beam-sdks-java-extensions-google-cloud-platform-core</artifactId>
+			<version>${beam-version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.beam</groupId>
+			<artifactId>beam-sdks-java-core</artifactId>
+			<version>${beam-version}</version>
+		</dependency>
+
+		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> 
+			<version>26.0-android</version> </dependency> -->
+
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.13.3</version>
+		</dependency>
+	</dependencies>
+
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>30.0-jre</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<compilerVersion>1.8</compilerVersion>
+					<source>1.8</source>
+					<target>1.8</target>
+					<compilerArgs>
+						<compilerArg>-parameters</compilerArg>
+					</compilerArgs>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<mainClass>com.skyflow.spike.beam.MinimalWordCount</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+
+
+			<!-- <plugin> <artifactId>maven-assembly-plugin</artifactId> <configuration> 
+				<finalName>${project.artifactId}-${project.version}</finalName> <descriptorRefs> 
+				<descriptorRef>jar-with-dependencies</descriptorRef> </descriptorRefs> <descriptors> 
+				<descriptor>assembly-plugin-config.xml</descriptor> <descriptor>assembly-plugin-env.xml</descriptor> 
+				</descriptors> </configuration> <executions> <execution> <id>make-assembly</id> 
+				<phase>package</phase> <goals> <goal>single</goal> </goals> </execution> 
+				</executions> </plugin> -->
+		</plugins>
+
+		<resources>
+			<resource>
+				<directory>${project.basedir}/src/main/resources</directory>
+			</resource>
+		</resources>
+
+		<testResources>
+			<testResource>
+				<directory>${project.basedir}/src/test/resources</directory>
+			</testResource>
+			<testResource>
+				<directory>${project.basedir}/src/main/resources</directory>
+			</testResource>
+		</testResources>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>direct-runner</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<!-- Makes the DirectRunner available when running a pipeline. -->
+			<dependencies>
+				<dependency>
+					<groupId>org.apache.beam</groupId>
+					<artifactId>beam-runners-direct-java</artifactId>
+					<version>${beam-version}</version>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+
+		<profile>
+			<id>apex-runner</id>
+			<!-- Makes the ApexRunner available when running a pipeline. -->
+			<dependencies>
+				<dependency>
+					<groupId>org.apache.beam</groupId>
+					<artifactId>beam-runners-apex</artifactId>
+					<version>${beam-version}</version>
+					<scope>runtime</scope>
+				</dependency>
+				<!-- Apex depends on httpclient version 4.3.5, project has a transitive 
+					dependency to httpclient 4.0.1 from google-http-client. Apex dependency version 
+					being specified explicitly so that it gets picked up. This can be removed 
+					when the project no longer has a dependency on a different httpclient version. -->
+				<dependency>
+					<groupId>org.apache.httpcomponents</groupId>
+					<artifactId>httpclient</artifactId>
+					<version>4.3.5</version>
+					<scope>runtime</scope>
+					<exclusions>
+						<exclusion>
+							<groupId>commons-codec</groupId>
+							<artifactId>commons-codec</artifactId>
+						</exclusion>
+					</exclusions>
+				</dependency>
+			</dependencies>
+		</profile>
+
+		<profile>
+			<id>dataflow-runner</id>
+			<!-- Makes the DataflowRunner available when running a pipeline. -->
+			<dependencies>
+				<dependency>
+					<groupId>org.apache.beam</groupId>
+					<artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
+					<version>${beam-version}</version>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+
+		<profile>
+			<id>flink-runner</id>
+			<!-- Makes the FlinkRunner available when running a pipeline. -->
+			<dependencies>
+				<dependency>
+					<groupId>org.apache.beam</groupId>
+					<artifactId>beam-runners-flink_2.10</artifactId>
+					<version>${beam-version}</version>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-shade-plugin</artifactId>
+						<version>2.4.1</version>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>shade</goal>
+								</goals>
+								<configuration>
+									<finalName>${project.artifactId}-bundled-flink</finalName>
+									<filters>
+										<filter>
+											<artifact>*:*</artifact>
+											<excludes>
+												<exclude>META-INF/LICENSE</exclude>
+												<exclude>META-INF/*.SF</exclude>
+												<exclude>META-INF/*.DSA</exclude>
+												<exclude>META-INF/*.RSA</exclude>
+											</excludes>
+										</filter>
+									</filters>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>spark-runner</id>
+			<!-- Makes the SparkRunner available when running a pipeline. Additionally, 
+				overrides some Spark dependencies to Beam-compatible versions. -->
+			<dependencies>
+				<dependency>
+					<groupId>org.apache.beam</groupId>
+					<artifactId>beam-runners-spark</artifactId>
+					<version>${beam-version}</version>
+				</dependency>
+
+				<dependency>
+					<groupId>org.apache.spark</groupId>
+					<artifactId>spark-core_2.11</artifactId>
+					<version>${spark-version}</version>
+					<exclusions>
+						<exclusion>
+							<groupId>com.google.guava</groupId>
+							<artifactId>guava</artifactId>
+						</exclusion>
+					</exclusions>
+				</dependency>
+
+				<dependency>
+					<groupId>org.apache.spark</groupId>
+					<artifactId>spark-streaming_2.11</artifactId>
+					<version>${spark-version}</version>
+					<exclusions>
+						<exclusion>
+							<groupId>com.google.guava</groupId>
+							<artifactId>guava</artifactId>
+						</exclusion>
+						<exclusion>
+							<groupId>org.slf4j</groupId>
+							<artifactId>jul-to-slf4j</artifactId>
+						</exclusion>
+					</exclusions>
+				</dependency>
+
+				<dependency>
+					<groupId>com.fasterxml.jackson.module</groupId>
+					<artifactId>jackson-module-scala_2.11</artifactId>
+					<version>${jackson-version}</version>
+				</dependency>
+				<dependency>
+					<groupId>com.fasterxml.jackson.module</groupId>
+					<artifactId>jackson-module-jaxb-annotations</artifactId>
+					<version>2.10.2</version>
+				</dependency>
+				<dependency>
+					<groupId>com.fasterxml.jackson.datatype</groupId>
+					<artifactId>jackson-datatype-joda</artifactId>
+					<version>2.10.2</version>
+				</dependency>
+			</dependencies>
+
+			<dependencyManagement>
+				<dependencies>
+					<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> 
+						<version>26.0-android</version> </dependency> -->
+				</dependencies>
+			</dependencyManagement>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-shade-plugin</artifactId>
+						<configuration>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>shade</goal>
+								</goals>
+								<configuration>
+									<shadedArtifactAttached>true</shadedArtifactAttached>
+									<shadedClassifierName>shaded</shadedClassifierName>
+									<transformers>
+										<transformer
+											implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+									</transformers>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>
